@@ -1,0 +1,9 @@
+{
+  "urls": ["https://www.google.com"],
+  "debug": false,
+  "randomLocation": true,
+  "adrum": {
+    "appKey": ""
+  },
+  "beaconCount": 1
+}
