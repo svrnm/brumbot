@@ -33,7 +33,9 @@ var config = {
   puppeteer: {
       args: ['--no-sandbox', '--disable-setuid-sandbox']
   },
-  networkConditions: false
+  networkConditions: false,
+  cookieFile: false,
+  cookies: false
 };
 
 // Debug helper
@@ -70,6 +72,10 @@ if (process.argv.length > 3) {
 console.log('Running headless...')
 
 debug(config);
+
+if(config.cookieFile) {
+ config.cookies = JSON.parse(fs.readFileSync(config.cookieFile, 'utf8'));
+}
 
 // Run Puppeteer in an async context
 (async () => {
@@ -136,6 +142,10 @@ debug(config);
     const browser = await puppeteer.launch(config.puppeteer);
 
     const page = await browser.newPage();
+
+    if(config.cookies) {
+      await page.setCookie(...config.cookies);
+    }
 
     if(config.networkConditions) {
       debug("Setting network conditions...", config.networkConditions)
