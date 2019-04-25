@@ -4,6 +4,7 @@ const url = require('url');
 const fs = require('fs');
 const Chance = require('chance');
 const chance = require('chance').Chance();
+const JSON5 = require('json5')
 
 
 // Default configuration
@@ -15,27 +16,24 @@ var config = {
   // Set 'count' to a positive integer to limit the number of sessions
   count: -1,
   // the adrum configuration
-  adrum: {
-    adrumExtUrlHttp: 'http://cdn.appdynamics.com',
-    adrumExtUrlHttps: 'https://cdn.appdynamics.com',
-    beaconUrlHttp: 'http://col.eum-appdynamics.com',
-    beaconUrlHttps: 'https://col.eum-appdynamics.com',
-    xd: {enable : false}
-  },
+  adrum: false,
   // the delay between each session
   delay: 1,
   // the number of beacons we will wait for
   beaconCount: 2,
   // the timeout before we will no longer wait for beacons
   adrumTimeout: 15,
+  adrumUrl: 'https://cdn.appdynamics.com/adrum/adrum-latest.js',
   randomLocation: false,
   withHelper: true,
+  baseUrl: undefined,
   puppeteer: {
       args: ['--no-sandbox', '--disable-setuid-sandbox']
   },
   networkConditions: false,
   cookieFile: false,
-  cookies: false
+  cookies: false,
+  bypassCSP: true
 };
 
 // Debug helper
@@ -49,16 +47,22 @@ function debug(msg) {
 if (process.argv.length > 2) {
   const file = fs.readFileSync(process.argv[2], 'utf8');
   try {
-    var newConfig = JSON.parse(file);
+    var newConfig = JSON5.parse(file);
     if(newConfig.adrum) {
-      newConfig.adrum = Object.assign(config.adrum, newConfig.adrum);
+      newConfig.adrum = Object.assign({
+        adrumExtUrlHttp: 'http://cdn.appdynamics.com',
+        adrumExtUrlHttps: 'https://cdn.appdynamics.com',
+        beaconUrlHttp: 'http://col.eum-appdynamics.com',
+        beaconUrlHttps: 'https://col.eum-appdynamics.com',
+        xd: {enable : false}
+      }, newConfig.adrum);
     }
     if(newConfig.puppeteer) {
       newConfig.puppeteer = Object.assign(config.puppeteer, newConfig.puppeteer)
     }
     config = Object.assign(config, newConfig);
   } catch (e) {
-    config.urls = file.trim().split("\n");
+    config.urls = file.trim().split('\n');
   }
 } else {
   console.log('Please provide a configuration file');
@@ -74,23 +78,30 @@ console.log('Running headless...')
 debug(config);
 
 if(config.cookieFile) {
- config.cookies = JSON.parse(fs.readFileSync(config.cookieFile, 'utf8'));
+ config.cookies = JSON5.parse(fs.readFileSync(config.cookieFile, 'utf8'));
+}
+
+var getIP = () => chance.ip()
+if(config.randomLocation === 'ipv6') {
+  getIP = () => chance.ipv6()
+} else if(config.randomLocation.includes('ipv4') && config.randomLocation.includes('ipv6')) {
+  getIP = () => chance.bool() ? chance.ip() : chance.ipv6()
+}
+
+function visiting(url, ip) {
+  const from = config.randomLocation !== false ? `from ${ip}` : ''
+  console.log('Visiting', url, from);
+}
+
+function logSession(index, helper) {
+  const person = config.withHelper ? `(${helper.person.first} ${helper.person.last} <${helper.person.email}>)` : ''
+  console.log('Session:', index, person)
 }
 
 // Run Puppeteer in an async context
 (async () => {
-  // Execute "count" sessions or run endlessly if count is -1
+  // Execute 'count' sessions or run endlessly if count is -1
   for (var j = 0; config.count === -1 || j < config.count; j++) {
-    console.log('Session ' + j + ' ==========')
-
-    if(config.randomLocation) {
-      var localIP = chance.ip();
-      debug('Requests come from: ' + localIP);
-      config.adrum.geo = {
-        localIP: localIP
-      }
-    }
-
     if(config.withHelper) {
       var first = chance.first();
       var last = chance.last();
@@ -136,19 +147,31 @@ if(config.cookieFile) {
           name: chance.company(),
         }
       }
+      debug(helper)
+    }
+
+    logSession(j, helper)
+
+    var localIP = getIP()
+    if(config.randomLocation !== false) {
+      debug('Requests come from: ' + localIP);
+      config.adrum.geo = {
+        localIP: localIP
+      }
     }
 
     // The browser is restarted for every session, so cookies & caches are empty
     const browser = await puppeteer.launch(config.puppeteer);
 
     const page = await browser.newPage();
+    await page.setBypassCSP(config.bypassCSP)
 
     if(config.cookies) {
       await page.setCookie(...config.cookies);
     }
 
     if(config.networkConditions) {
-      debug("Setting network conditions...", config.networkConditions)
+      debug('Setting network conditions...', config.networkConditions)
       const cdp = await page.target().createCDPSession()
       await cdp.send('Network.emulateNetworkConditions', config.networkConditions)
     }
@@ -165,12 +188,12 @@ if(config.cookieFile) {
     // Here the magic happens: Inject the adrum script into the page
     if(config.adrum) {
       page.on('framenavigated', async frame => {
-        await page.addScriptTag({content: `window['adrum-config'] = ${JSON.stringify(config.adrum)}`});
-        await page.addScriptTag({url: 'https://cdn.appdynamics.com/adrum/adrum-latest.js'});
+        await page.addScriptTag({content: `window['adrum-config'] = ${JSON5.stringify(config.adrum)}`});
+        await page.addScriptTag({url: config.adrumUrl});
         if(config.extra) {
-          var helperScript = "";
+          var helperScript = '';
           if(config.withHelper) {
-            helperScript = `window.adrumHelper = ${JSON.stringify(helper)};`
+            helperScript = `window.adrumHelper = ${JSON5.stringify(helper)};`
           }
           await page.addScriptTag({content: helperScript + config.extra});
         }
@@ -187,9 +210,9 @@ if(config.cookieFile) {
 
     // Loop over the list of URLs
     for (var i = 0; i < config.urls.length; i++) {
-      const myUrl = new url.URL(config.urls[i]);
+      const myUrl = new url.URL(config.urls[i], config.baseUrl);
       var bc = 0;
-      console.log('Visiting', myUrl.href);
+      visiting(myUrl.href, localIP)
       try {
         await page.goto(myUrl);
         if(config.debug) {
@@ -206,7 +229,7 @@ if(config.cookieFile) {
 
               debug(request.postData())
 
-              process.stdout.write("" + (bc+1))
+              process.stdout.write('' + (bc+1))
               bc++
               if(bc >= config.beaconCount) {
                 clearTimeout(to);
@@ -219,6 +242,7 @@ if(config.cookieFile) {
         console.log(e)
         await new Promise(resolve => setTimeout(resolve, 1500));
       }
+      process.stdout.write('\n')
     }
 
     await page.close();

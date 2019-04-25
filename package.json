@@ -15,7 +15,8 @@
   "author": "Severin Neumann <severin.neumann@appdynamics.com>",
   "license": "MIT",
   "dependencies": {
-    "puppeteer": "^1.9.0",
-    "chance": "^1.0.16"
+    "chance": "^1.0.18",
+    "json5": "^2.1.0",
+    "puppeteer": "^1.14.0"
   }
 }

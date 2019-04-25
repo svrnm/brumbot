@@ -1,0 +1,37 @@
+{
+  // baseUrl: <string> The base URL to resolve against if an url is not absolute. Default: undefined
+  "baseUrl": "https://github.com/svrnm/brumbot",
+  // urls: <Array> List of URLS that will be visited within one session: Default: []
+  "urls": ["/", "https://github.com/svrnm/brumbot/blob/master/README.md", "/blob/master/Dockerfile"],
+  // debug: <boolean> Enable or disable verbose debug output. Default: false
+  "debug": false,
+  // count: <integer> Set to a positive integer to limit the number of sessions. Default: -1
+  count: -1,
+  // delay: <integer> Add a delay after each session in seconds. Default: 1
+  delay: 1,
+  // randomLocation: <boolean | 'ipv6,ipv4' | 'ipv4' | 'ipv6'> Overwrite the ip requests are coming from for each session. 'true' is equivalent to 'ipv4'. Default: false
+  "randomLocation": 'ipv6,ipv4',
+  // adrum: <Object | false> Set the adrum configuration, that will be injected into each page. Set to false to disable.
+  // Default: { adrumExtUrlHttp: 'http://cdn.appdynamics.com', adrumExtUrlHttps: 'https://cdn.appdynamics.com', beaconUrlHttp: 'http://col.eum-appdynamics.com', beaconUrlHttps: 'https://col.eum-appdynamics.com', xd: {enable : false} }
+  "adrum": {
+    // appKey: <string> Setting the appKey is the minimum requirement for a successful instrumentation. Default: undefined
+    "appKey": "XX-XXX-XXX-XX"
+    // Set further adrum properties like beaconUrlHttp, beaconUrlHttps to overwrite the defaults
+  },
+  // adrumUrl: <string> Set the location, where the adrum-[version].js is hosted. Default: https://cdn.appdynamics.com/adrum/adrum-latest.js
+  "adrumUrl": "https://cdn.appdynamics.com/adrum/adrum-latest.js",
+  // beaconCount: <integer> Wait for this number of adrum beacons before visiting the next page. Default: 2
+  "beaconCount": 1,
+  // adrumTimeout: <integer> Timeout after this number of seconds if no beacon is sent. Default: 15
+  "adrumTimeout": 15,
+  // withHelper: <boolean> If enabled, add an object `window.adrumHelper` that can be used to generate fake data for additional user data. Default: true
+  "withHelper": true,
+  // puppeteer: <Object> Provide configuration properties to puppeteer. Default: { args: ['--no-sandbox', '--disable-setuid-sandbox'] }
+  "puppeteer": {},
+  // networkConditions: <Object | false> Specify network conditions for the request. Default: false
+  "networkConditions": false,
+  // cookeFile <string | false> Provide cookies in json format from a file: Default: false
+  "cookieFile": false,
+  // cookies <Array | false> Provide cookies to be loaded before each session. Default: false
+  "cookies": false
+}

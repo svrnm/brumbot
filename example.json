@@ -1,9 +1,0 @@
-{
-  "urls": ["http://bruml1lab-neumanneumbruml1la-nijhudtd.srv.ravcloud.com:8080/activity"],
-  "debug": false,
-  "randomLocation": false,
-  "adrum": {
-    "appKey": "AD-AAB-AAN-JPY"
-  },
-  "beaconCount": 1
-}
