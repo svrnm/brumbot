@@ -84,7 +84,7 @@ if(config.cookieFile) {
 var getIP = () => chance.ip()
 if(config.randomLocation === 'ipv6') {
   getIP = () => chance.ipv6()
-} else if(config.randomLocation.includes('ipv4') && config.randomLocation.includes('ipv6')) {
+} else if(typeof config.randomLocation === 'string' && config.randomLocation.includes('ipv4') && config.randomLocation.includes('ipv6')) {
   getIP = () => chance.bool() ? chance.ip() : chance.ipv6()
 }
 
